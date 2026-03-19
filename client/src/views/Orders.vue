@@ -8,6 +8,37 @@
     <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
+      <div v-if="restockOrders.length > 0" class="card submitted-orders-section">
+        <div class="card-header">
+          <h3 class="card-title">Submitted Orders ({{ restockOrders.length }})</h3>
+          <span class="badge info">From Restocking Tab</span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Items</th>
+                <th>Status</th>
+                <th>Ordered</th>
+                <th>Est. Delivery</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in restockOrders" :key="order.id">
+                <td><strong>{{ order.order_number }}</strong></td>
+                <td>{{ order.items.length }} item{{ order.items.length !== 1 ? 's' : '' }}</td>
+                <td><span class="badge warning">{{ order.status }}</span></td>
+                <td>{{ formatDate(order.order_date) }}</td>
+                <td>{{ formatDate(order.expected_delivery) }}</td>
+                <td><strong>{{ currencySymbol }}{{ order.total_value.toLocaleString() }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="stats-grid">
         <div class="stat-card success">
           <div class="stat-label">{{ t('status.delivered') }}</div>
@@ -95,6 +126,7 @@ export default {
     const loading = ref(true)
     const error = ref(null)
     const orders = ref([])
+    const restockOrders = ref([])
 
     // Use shared filters
     const {
@@ -153,13 +185,25 @@ export default {
       })
     }
 
-    onMounted(loadOrders)
+    const loadRestockOrders = async () => {
+      try {
+        restockOrders.value = await api.getRestockOrders()
+      } catch (err) {
+        console.error('Failed to load restock orders:', err)
+      }
+    }
+
+    onMounted(() => {
+      loadOrders()
+      loadRestockOrders()
+    })
 
     return {
       t,
       loading,
       error,
       orders,
+      restockOrders,
       getOrdersByStatus,
       getOrderStatusClass,
       formatDate,
